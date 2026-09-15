@@ -60,22 +60,21 @@ Insight: Consumer purchasing heavily favors healthier, low-fat grocery items, si
 <img width="600" alt="Outlet_Sales" src="Dashboard/sales_by_fat_content.png" />
 
 
-**4. Top Product Categories (Sales by Item Type)**
+### 4. Top Product Categories (Sales by Item Type)
 
+<img width="500" alt="Sales by Item Type" src="Dashboard/Sales_by_item_type.png" />
 
-Fruits & Vegetables: Top revenue driver at $2.8M.
+* **Fruits & Vegetables:** Top revenue driver at $2.8M.
+* **Snack Foods:** Second-highest category contributing $2.7M.
+* **Household Essentials:** Generates $2.1M, followed by Frozen Foods ($1.8M) and Dairy ($1.5M).
+* **Insight:** Fresh produce and convenience snacks generate the main bulk of sales, serving as primary traffic anchors for store locations.
 
-Snack Foods: Second-highest category contributing $2.7M.
+---
 
-Household Essentials: Generates $2.1M, followed by Frozen Foods ($1.8M) and Dairy ($1.5M).
+## 📁 Repository Structure
 
-Insight: Fresh produce and convenience snacks generate the main bulk of sales, serving as primary traffic anchors for store locations.
-<img width="600" alt="Outlet_Sales" src="Dashboard/Sales_by_item_type.png" />
-
-
-
-## Repository Structure
-
+```text
+blinkit-grocery-analysis/
 ├── README.md
 ├── blinkit-grocery-analysis.sql
 ├── Contain_Raw_Data.csv
@@ -83,8 +82,8 @@ Insight: Fresh produce and convenience snacks generate the main bulk of sales, s
     ├── Blinkit_Grocery_Sales.pbix
     ├── Total_sales.png
     ├── sales_by_Outlet_size_.png
-    ├──sales_by_fat_content
-    └── Sales_by_item_type
+    ├── sales_by_fat_content.png
+    └── Sales_by_item_type.png
     
 
 ## Author
