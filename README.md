@@ -19,7 +19,14 @@ This project conducts an end-to-end exploratory analysis of Blinkit's grocery sa
 2. **Top Selling Category:** [Fruits and Vegetables] is the highest revenue-generating category ($[2820059.82]).
 3. **Outlet Size Impact:** [Medium] stores produced the highest overall sales volume which is [7489718.69].
 4. **City Tier Performance:** [Tier 3] locations generated the most revenue Order by Tier 2 and 1.
+## Dashboard
+1. Key Performance Indicators (KPIs)
+Total Sales ($18.59M): Cumulative revenue generated across all store outlets and grocery inventory.
 
+Average Sales ($2.18K): Mean revenue generated per item entry across all outlet locations.
+
+Insight: Strong cumulative revenue paired with high average sales per item indicates solid item throughput across the retail network.
+<img width="600" alt="Total_sales" src="Dashboard/Total_sales.png" />
 ## Repository Structure
 * `BlinkIT Grocery Data.csv` — Raw dataset
 * `blinkit_analysis.sql` — Cleaned SQL script containing data transformation and analysis queries
