@@ -28,9 +28,14 @@ Total Sales ($18.59M): Cumulative revenue generated across all store outlets and
 Average Sales ($2.18K): Mean revenue generated per item entry across all outlet locations.
 
 Insight: Strong cumulative revenue paired with high average sales per item indicates solid item throughput across the retail network.
+
+
 <img width="600" alt="Total_sales" src="Dashboard/Total_sales.png" />
 
+
+
 **2. Sales by Outlet Size**
+
 Small Outlets: Lead total revenue generation, contributing approximately $9M.
 
 Medium Outlets: Represent the second-largest share at around $7.5M.
@@ -38,16 +43,26 @@ Medium Outlets: Represent the second-largest share at around $7.5M.
 High (Large) Outlets: Account for the smallest revenue share at roughly $2.5M.
 
 Insight: Compact store footprints drive over 80% of total sales volume, highlighting high sales efficiency and broader geographic reach for smaller retail formats.
+
+
 <img width="600" alt="Outlet_Sales" src="Dashboard/sales_by_Outlet_size_.png" />
 
+
+
 **3. Sales by Fat Content**
+
+
 Low Fat Inventory: Dominates customer demand, generating $11.90M (64.03%) of total sales.
 
 Regular Inventory: Contributes $6.69M (35.97%) of overall revenue.
 
 Insight: Consumer purchasing heavily favors healthier, low-fat grocery items, signaling a key strategic opportunity to prioritize low-fat inventory stocking.
 <img width="600" alt="Outlet_Sales" src="Dashboard/sales_by_fat_content.png" />
+
+
 **4. Top Product Categories (Sales by Item Type)**
+
+
 Fruits & Vegetables: Top revenue driver at $2.8M.
 
 Snack Foods: Second-highest category contributing $2.7M.
@@ -56,6 +71,8 @@ Household Essentials: Generates $2.1M, followed by Frozen Foods ($1.8M) and Dair
 
 Insight: Fresh produce and convenience snacks generate the main bulk of sales, serving as primary traffic anchors for store locations.
 <img width="600" alt="Outlet_Sales" src="Dashboard/Sales_by_item_type.png" />
+
+
 
 ## Repository Structure
 
