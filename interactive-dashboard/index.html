@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blinkit Sales Dashboard</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --muted: #898781;
+    --grid: #e1e0d9;
+    --axis: #c3c2b7;
+    --border: rgba(11,11,11,0.10);
+    --wash: rgba(11,11,11,0.04);
+    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
+    --dim: 0.28;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7;
+      --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+      --wash: rgba(255,255,255,0.06);
+      --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+    --wash: rgba(255,255,255,0.06);
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--page); color: var(--ink);
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 24px 16px 48px; }
+  header { display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
+  h1 { font-size: 22px; margin: 0 0 4px; font-weight: 600; }
+  .sub { color: var(--ink-2); margin: 0; max-width: 760px; }
+  button, select, input {
+    font: inherit; color: var(--ink); background: var(--surface);
+    border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px;
+  }
+  button { cursor: pointer; }
+  button:hover { background: var(--wash); }
+
+  .filters {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end;
+    margin: 20px 0 16px; padding: 12px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 12px;
+  }
+  .filters label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--ink-2); }
+  .filters select { min-width: 140px; }
+  .active-note { font-size: 12px; color: var(--muted); margin-left: auto; align-self: center; }
+
+  .kpis { display: grid; grid-template-columns: minmax(0, 2fr) repeat(4, minmax(0, 1fr)); gap: 12px; }
+  .tile { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+  .tile .label { color: var(--ink-2); font-size: 13px; }
+  .tile .value { font-size: 26px; font-weight: 600; margin-top: 2px; }
+  .tile.hero .value { font-size: 48px; line-height: 1.1; }
+  .tile .note { color: var(--muted); font-size: 12px; }
+
+  .grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; min-width: 0; }
+  .card h2 { font-size: 15px; font-weight: 600; margin: 0; }
+  .card .hint { font-size: 12px; color: var(--muted); margin: 2px 0 10px; }
+  .span-7 { grid-column: span 7; } .span-5 { grid-column: span 5; }
+  .span-6 { grid-column: span 6; } .span-4 { grid-column: span 4; } .span-12 { grid-column: span 12; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--ink-2); margin-bottom: 8px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+
+  svg text { fill: var(--ink-2); font-size: 12px; }
+  svg .val { fill: var(--ink); font-variant-numeric: tabular-nums; }
+  svg .tick { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+  svg .bar { cursor: pointer; transition: opacity .15s; }
+  svg .row:hover .hit { fill: var(--wash); }
+  svg .dimmed { opacity: var(--dim); }
+
+  .scatter-box { position: relative; }
+  canvas { width: 100%; height: 220px; display: block; }
+
+  .tip {
+    position: fixed; pointer-events: none; z-index: 10; display: none;
+    background: var(--surface); color: var(--ink); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 10px; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,.12);
+    max-width: 260px;
+  }
+  .tip b { display: block; margin-bottom: 2px; }
+  .tip .k { color: var(--ink-2); }
+
+  .table-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .table-tools input { flex: 1 1 200px; }
+  .table-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 7px 8px; border-bottom: 1px solid var(--grid); text-align: left; white-space: nowrap; }
+  th { color: var(--ink-2); font-weight: 600; cursor: pointer; user-select: none; }
+  th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  th .arrow { color: var(--muted); }
+  tbody tr:hover { background: var(--wash); }
+  .pager { display: flex; gap: 8px; align-items: center; justify-content: flex-end; margin-top: 10px; font-size: 12px; color: var(--ink-2); }
+
+  footer { margin-top: 24px; color: var(--muted); font-size: 12px; }
+
+  @media (max-width: 960px) {
+    .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .tile.hero { grid-column: span 2; }
+    .span-7, .span-5, .span-6, .span-4 { grid-column: span 12; }
+  }
+  @media (max-width: 560px) {
+    .filters label { width: calc(50% - 5px); }
+    .filters select { width: 100%; min-width: 0; }
+    .tile.hero .value { font-size: 36px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Blinkit grocery sales</h1>
+      <p class="sub">8,523 product listings across 10 outlets. Each listing is one product at one outlet, and sales are the value it sold there. Click any bar to filter by it; click it again to clear.</p>
+    </div>
+    <button id="theme" type="button" aria-label="Toggle dark mode">Dark mode</button>
+  </header>
+
+  <section class="filters" id="filters" aria-label="Filters"></section>
+
+  <section class="kpis" id="kpis"></section>
+
+  <section class="grid">
+    <div class="card span-7">
+      <h2>Sales by product category</h2>
+      <p class="hint">Total sales value, highest first</p>
+      <div id="chart-category"></div>
+    </div>
+    <div class="card span-5">
+      <h2>Sales by outlet</h2>
+      <p class="hint">Coloured by outlet type. The two grocery stores sell about a seventh of what a supermarket does.</p>
+      <div class="legend" id="legend-outlet"></div>
+      <div id="chart-outlet"></div>
+    </div>
+
+    <div class="card span-4">
+      <h2>Fat content</h2>
+      <p class="hint">Share of sales. Non-edible covers household, hygiene and other non-food items.</p>
+      <div id="chart-fat"></div>
+    </div>
+    <div class="card span-4">
+      <h2>Sales per outlet by size</h2>
+      <p class="hint">Total sales divided by number of outlets, so sizes compare fairly</p>
+      <div id="chart-size"></div>
+    </div>
+    <div class="card span-4">
+      <h2>Sales per outlet by location tier</h2>
+      <p class="hint">Tier 3 leads on total only because it has four outlets</p>
+      <div id="chart-tier"></div>
+    </div>
+
+    <div class="card span-6">
+      <h2>Average sales by price tier</h2>
+      <p class="hint">Average sales per listing, by MRP band</p>
+      <div id="chart-price"></div>
+    </div>
+    <div class="card span-6">
+      <h2>MRP against sales</h2>
+      <p class="hint" id="corr-note">Each dot is one listing</p>
+      <div class="scatter-box"><canvas id="scatter"></canvas></div>
+    </div>
+
+    <div class="card span-12">
+      <h2>Products</h2>
+      <p class="hint">Totals across the outlets that match the filters</p>
+      <div class="table-tools">
+        <input id="search" type="search" placeholder="Search product ID or category" aria-label="Search products">
+        <label style="font-size:12px;color:var(--ink-2)">Rows
+          <select id="page-size"><option>10</option><option selected>25</option><option>50</option><option>100</option></select>
+        </label>
+        <button id="export" type="button">Export CSV</button>
+      </div>
+      <div class="table-scroll"><table id="products"></table></div>
+      <div class="pager" id="pager"></div>
+    </div>
+  </section>
+
+  <footer>
+    Built from data/blinkit_clean.csv by scripts/build_dashboard_data.py. Fat labels standardised, missing outlet sizes shown as Unknown,
+    missing weights and zero visibilities filled per product. The dataset has no dates, costs or customer data, so there is no time trend or profit view.
+  </footer>
+</div>
+<div class="tip" id="tip" role="tooltip"></div>
+
+<script src="data.js"></script>
+<script>
+(() => {
+  const D = window.BLINKIT_DATA;
+  if (!D) {
+    document.querySelector('.wrap').insertAdjacentHTML('afterbegin',
+      '<p style="color:#d03b3b">data.js not found. Run python scripts/build_dashboard_data.py first.</p>');
+    return;
+  }
+
+  // ---------- data ----------
+  const OUTLET_TYPES = ['Supermarket Type1', 'Supermarket Type2', 'Supermarket Type3', 'Grocery Store'];
+  const PRICE_TIERS = ['Budget (<50)', 'Mid (50-99)', 'Premium (100-199)', 'Luxury (200+)'];
+  const SIZE_ORDER = ['High', 'Medium', 'Small', 'Unknown'];
+  const priceTier = m => m < 50 ? PRICE_TIERS[0] : m < 100 ? PRICE_TIERS[1] : m < 200 ? PRICE_TIERS[2] : PRICE_TIERS[3];
+
+  const rows = D.rows.map(r => {
+    const o = D.outlets[r[3]];
+    return {
+      item: r[0], type: D.itemTypes[r[1]], fat: D.fatContents[r[2]],
+      outlet: o.id, size: o.size, tier: o.tier, otype: o.type, year: o.year,
+      mrp: r[4], sales: r[5], visibility: r[6], price: priceTier(r[4]),
+    };
+  });
+
+  // ---------- filters ----------
+  const FILTERS = [
+    { key: 'tier', label: 'Location tier' },
+    { key: 'size', label: 'Outlet size', order: SIZE_ORDER },
+    { key: 'otype', label: 'Outlet type', order: OUTLET_TYPES },
+    { key: 'outlet', label: 'Outlet' },
+    { key: 'type', label: 'Product category' },
+    { key: 'fat', label: 'Fat content' },
+    { key: 'price', label: 'Price tier', order: PRICE_TIERS },
+  ];
+  const state = Object.fromEntries(FILTERS.map(f => [f.key, '']));
+  const table = { search: '', sort: 'sales', dir: -1, page: 0, size: 25 };
+
+  const filtersEl = document.getElementById('filters');
+  FILTERS.forEach(f => {
+    const values = f.order || [...new Set(rows.map(r => r[f.key]))].sort();
+    const lab = document.createElement('label');
+    lab.textContent = f.label;
+    const sel = document.createElement('select');
+    sel.id = 'f-' + f.key;
+    sel.innerHTML = '<option value="">All</option>' + values.map(v => `<option>${v}</option>`).join('');
+    sel.addEventListener('change', () => { state[f.key] = sel.value; table.page = 0; render(); });
+    lab.appendChild(sel);
+    filtersEl.appendChild(lab);
+  });
+  const reset = document.createElement('button');
+  reset.type = 'button'; reset.textContent = 'Reset filters';
+  reset.addEventListener('click', () => { for (const k in state) state[k] = ''; table.page = 0; render(); });
+  filtersEl.appendChild(reset);
+  const activeNote = document.createElement('span');
+  activeNote.className = 'active-note';
+  filtersEl.appendChild(activeNote);
+
+  // Rows matching every filter except `skip`, so a chart still shows its
+  // own dimension in full and highlights the selected bar.
+  const filtered = skip => rows.filter(r => FILTERS.every(f => f.key === skip || !state[f.key] || r[f.key] === state[f.key]));
+  const toggle = (key, value) => { state[key] = state[key] === value ? '' : value; table.page = 0; render(); };
+
+  // ---------- formatting ----------
+  const money = v => {
+    const a = Math.abs(v);
+    if (a >= 1e6) return '₹' + (v / 1e6).toFixed(2) + 'M';
+    if (a >= 1e3) return '₹' + (v / 1e3).toFixed(1) + 'K';
+    return '₹' + v.toFixed(0);
+  };
+  const moneyFull = v => '₹' + v.toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+  const int = v => v.toLocaleString('en-IN');
+  const pct = v => (v * 100).toFixed(1) + '%';
+  const sum = (a, f) => a.reduce((s, r) => s + f(r), 0);
+  const groupBy = (a, f) => { const m = new Map(); a.forEach(r => { const k = f(r); (m.get(k) || m.set(k, []).get(k)).push(r); }); return m; };
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const typeColor = t => `var(--s${OUTLET_TYPES.indexOf(t) + 1})`;
+
+  // ---------- tooltip ----------
+  const tip = document.getElementById('tip');
+  const showTip = (e, html) => {
+    tip.innerHTML = html; tip.style.display = 'block';
+    const pad = 14, w = tip.offsetWidth, h = tip.offsetHeight;
+    let x = e.clientX + pad, y = e.clientY + pad;
+    if (x + w > innerWidth - 8) x = e.clientX - w - pad;
+    if (y + h > innerHeight - 8) y = e.clientY - h - pad;
+    tip.style.left = x + 'px'; tip.style.top = y + 'px';
+  };
+  const hideTip = () => { tip.style.display = 'none'; };
+
+  // ---------- horizontal bar chart ----------
+  // items: [{label, value, color?, tip}], selected: label currently filtered on
+  function hbar(el, items, { selected = '', onClick, fmt = money, labelWidth = 130 } = {}) {
+    el.replaceChildren();
+    const width = Math.max(el.clientWidth, 240);
+    const rowH = 26, barH = 16, top = 4, right = 64;
+    const height = top + items.length * rowH + 4;
+    const max = Math.max(...items.map(d => d.value), 1);
+    const plotW = width - labelWidth - right;
+    const NS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('width', width); svg.setAttribute('height', height);
+    svg.setAttribute('role', 'img');
+
+    items.forEach((d, i) => {
+      const y = top + i * rowH;
+      const w = Math.max(d.value / max * plotW, d.value > 0 ? 2 : 0);
+      const r = Math.min(4, w / 2);
+      const g = document.createElementNS(NS, 'g');
+      g.setAttribute('class', 'row bar' + (selected && selected !== d.label ? ' dimmed' : ''));
+      g.innerHTML =
+        `<rect class="hit" x="0" y="${y}" width="${width}" height="${rowH}" rx="4" fill="transparent"></rect>` +
+        `<text x="${labelWidth - 8}" y="${y + rowH / 2 + 4}" text-anchor="end">${esc(d.label)}</text>` +
+        // square at the baseline, 4px rounded at the data end
+        `<path d="M${labelWidth},${y + (rowH - barH) / 2} h${w - r} a${r},${r} 0 0 1 ${r},${r} v${barH - 2 * r} a${r},${r} 0 0 1 ${-r},${r} h${-(w - r)} z" fill="${d.color || 'var(--s1)'}"></path>` +
+        `<text class="val" x="${labelWidth + w + 6}" y="${y + rowH / 2 + 4}">${fmt(d.value)}</text>`;
+      g.addEventListener('mousemove', e => showTip(e, d.tip));
+      g.addEventListener('mouseleave', hideTip);
+      if (onClick) g.addEventListener('click', () => onClick(d.label));
+      svg.appendChild(g);
+    });
+    svg.insertAdjacentHTML('afterbegin',
+      `<line x1="${labelWidth}" x2="${labelWidth}" y1="0" y2="${height}" stroke="var(--axis)" stroke-width="1"></line>`);
+    el.replaceChildren(svg);
+  }
+
+  // ---------- part-to-whole bar (fat content) ----------
+  function shareBar(el, items, selected, onClick) {
+    const total = sum(items, d => d.value) || 1;
+    el.replaceChildren();
+    const width = Math.max(el.clientWidth, 200), h = 28, gap = 2;
+    let x = 0;
+    const segs = items.map(d => {
+      const w = Math.max(d.value / total * (width - gap * (items.length - 1)), 0);
+      const s = { ...d, x, w }; x += w + gap; return s;
+    });
+    el.innerHTML =
+      `<div class="legend">${items.map(d => `<span><i style="background:${d.color}"></i>${esc(d.label)} ${pct(d.value / total)}</span>`).join('')}</div>` +
+      `<svg width="${width}" height="${h}" role="img">${segs.map((s, i) =>
+        `<rect class="bar${selected && selected !== s.label ? ' dimmed' : ''}" data-i="${i}" x="${s.x}" y="0" width="${s.w}" height="${h}" rx="4" fill="${s.color}"></rect>`).join('')}</svg>` +
+      `<table style="margin-top:12px"><tbody>${items.map(d =>
+        `<tr><td><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${d.color};margin-right:6px"></i>${esc(d.label)}</td>` +
+        `<td class="num">${money(d.value)}</td><td class="num">${int(d.count)} listings</td></tr>`).join('')}</tbody></table>`;
+    el.querySelectorAll('rect').forEach(rect => {
+      const d = segs[+rect.dataset.i];
+      rect.addEventListener('mousemove', e => showTip(e, d.tip));
+      rect.addEventListener('mouseleave', hideTip);
+      rect.addEventListener('click', () => onClick(d.label));
+    });
+  }
+
+  // ---------- scatter (canvas: 8.5K points) ----------
+  const canvas = document.getElementById('scatter');
+  let scatterPts = [];
+  function scatter(data) {
+    const dpr = window.devicePixelRatio || 1;
+    const W = canvas.clientWidth, H = 220;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, W, H);
+    const m = { l: 44, r: 10, t: 8, b: 28 };
+    const xMax = 275, yMax = Math.max(14000, ...data.map(d => d.sales));
+    const sx = v => m.l + v / xMax * (W - m.l - m.r);
+    const sy = v => H - m.b - v / yMax * (H - m.t - m.b);
+
+    ctx.font = '11px system-ui, sans-serif';
+    ctx.textAlign = 'right';
+    for (let v = 0; v <= yMax; v += 4000) {
+      ctx.strokeStyle = cssVar('--grid'); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(m.l, sy(v) + .5); ctx.lineTo(W - m.r, sy(v) + .5); ctx.stroke();
+      ctx.fillStyle = cssVar('--muted'); ctx.fillText(v ? (v / 1000) + 'K' : '0', m.l - 6, sy(v) + 4);
+    }
+    ctx.textAlign = 'center';
+    for (let v = 0; v <= 250; v += 50) ctx.fillText('₹' + v, sx(v), H - m.b + 16);
+
+    ctx.fillStyle = cssVar('--s1');
+    ctx.globalAlpha = data.length > 2000 ? 0.25 : 0.55;
+    scatterPts = data.map(d => {
+      const p = { x: sx(d.mrp), y: sy(d.sales), d };
+      ctx.beginPath(); ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2); ctx.fill();
+      return p;
+    });
+    ctx.globalAlpha = 1;
+
+    // Pearson correlation, shown in the hint
+    const n = data.length, note = document.getElementById('corr-note');
+    if (n > 2) {
+      const mx = sum(data, d => d.mrp) / n, my = sum(data, d => d.sales) / n;
+      let cov = 0, vx = 0, vy = 0;
+      data.forEach(d => { cov += (d.mrp - mx) * (d.sales - my); vx += (d.mrp - mx) ** 2; vy += (d.sales - my) ** 2; });
+      note.textContent = `Each dot is one listing. Correlation r = ${(cov / Math.sqrt(vx * vy)).toFixed(2)}: higher-priced items bring in more sales.`;
+    } else note.textContent = 'Each dot is one listing';
+  }
+  canvas.addEventListener('mousemove', e => {
+    const b = canvas.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top;
+    let best = null, bd = 100;
+    for (const p of scatterPts) { const dd = (p.x - x) ** 2 + (p.y - y) ** 2; if (dd < bd) { bd = dd; best = p; } }
+    if (!best) return hideTip();
+    const d = best.d;
+    showTip(e, `<b>${esc(d.item)} at ${esc(d.outlet)}</b><span class="k">${esc(d.type)}</span><br>MRP ₹${d.mrp.toFixed(2)}<br>Sales ${moneyFull(d.sales)}`);
+  });
+  canvas.addEventListener('mouseleave', hideTip);
+
+  // ---------- products table ----------
+  const COLS = [
+    { key: 'item', label: 'Product' }, { key: 'type', label: 'Category' }, { key: 'fat', label: 'Fat content' },
+    { key: 'mrp', label: 'MRP', num: true, fmt: v => '₹' + v.toFixed(2) },
+    { key: 'outlets', label: 'Outlets', num: true, fmt: int },
+    { key: 'sales', label: 'Total sales', num: true, fmt: moneyFull },
+    { key: 'avg', label: 'Avg per outlet', num: true, fmt: moneyFull },
+  ];
+  let productRows = [];
+  function buildProducts(data) {
+    productRows = [...groupBy(data, r => r.item)].map(([item, rs]) => {
+      const s = sum(rs, r => r.sales);
+      return { item, type: rs[0].type, fat: rs[0].fat, mrp: sum(rs, r => r.mrp) / rs.length,
+               outlets: rs.length, sales: s, avg: s / rs.length };
+    });
+  }
+  function renderTable() {
+    const q = table.search.toLowerCase();
+    let list = productRows.filter(p => !q || p.item.toLowerCase().includes(q) || p.type.toLowerCase().includes(q));
+    list.sort((a, b) => (a[table.sort] > b[table.sort] ? 1 : a[table.sort] < b[table.sort] ? -1 : 0) * table.dir);
+    const pages = Math.max(1, Math.ceil(list.length / table.size));
+    table.page = Math.min(table.page, pages - 1);
+    const pageRows = list.slice(table.page * table.size, (table.page + 1) * table.size);
+    const el = document.getElementById('products');
+    el.innerHTML =
+      `<thead><tr>${COLS.map(c => `<th class="${c.num ? 'num' : ''}" data-k="${c.key}" aria-sort="${table.sort === c.key ? (table.dir > 0 ? 'ascending' : 'descending') : 'none'}">${c.label} <span class="arrow">${table.sort === c.key ? (table.dir > 0 ? '▲' : '▼') : ''}</span></th>`).join('')}</tr></thead>` +
+      `<tbody>${pageRows.map(p => `<tr>${COLS.map(c => `<td class="${c.num ? 'num' : ''}">${esc(c.fmt ? c.fmt(p[c.key]) : p[c.key])}</td>`).join('')}</tr>`).join('') ||
+        `<tr><td colspan="${COLS.length}" style="color:var(--muted)">No products match.</td></tr>`}</tbody>`;
+    el.querySelectorAll('th').forEach(th => th.addEventListener('click', () => {
+      const k = th.dataset.k;
+      table.dir = table.sort === k ? -table.dir : (COLS.find(c => c.key === k).num ? -1 : 1);
+      table.sort = k; renderTable();
+    }));
+    const pager = document.getElementById('pager');
+    pager.innerHTML = `<span>${int(list.length)} products · page ${table.page + 1} of ${pages}</span>` +
+      `<button type="button" ${table.page === 0 ? 'disabled' : ''} data-d="-1">Previous</button>` +
+      `<button type="button" ${table.page >= pages - 1 ? 'disabled' : ''} data-d="1">Next</button>`;
+    pager.querySelectorAll('button').forEach(b => b.addEventListener('click', () => { table.page += +b.dataset.d; renderTable(); }));
+    return list;
+  }
+  document.getElementById('search').addEventListener('input', e => { table.search = e.target.value; table.page = 0; renderTable(); });
+  document.getElementById('page-size').addEventListener('change', e => { table.size = +e.target.value; table.page = 0; renderTable(); });
+  document.getElementById('export').addEventListener('click', () => {
+    const list = renderTable();
+    const csv = [COLS.map(c => c.label).join(',')]
+      .concat(list.map(p => COLS.map(c => c.num ? (+p[c.key]).toFixed(2) : `"${String(p[c.key]).replace(/"/g, '""')}"`).join(',')))
+      .join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    a.download = 'blinkit_products_filtered.csv';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+
+  // ---------- render ----------
+  function kpis(data) {
+    const total = sum(data, r => r.sales);
+    const tiles = [
+      { label: 'Total sales', value: money(total), note: moneyFull(total), hero: true },
+      { label: 'Average sales per listing', value: data.length ? money(total / data.length) : '-' },
+      { label: 'Listings', value: int(data.length), note: 'product × outlet pairs' },
+      { label: 'Unique products', value: int(new Set(data.map(r => r.item)).size) },
+      { label: 'Average MRP', value: data.length ? '₹' + (sum(data, r => r.mrp) / data.length).toFixed(2) : '-' },
+    ];
+    document.getElementById('kpis').innerHTML = tiles.map(t =>
+      `<div class="tile${t.hero ? ' hero' : ''}"><div class="label">${t.label}</div><div class="value">${t.value}</div>${t.note ? `<div class="note">${t.note}</div>` : ''}</div>`).join('');
+  }
+
+  const groupTip = (label, rs, extra = '') =>
+    `<b>${esc(label)}</b>Sales ${moneyFull(sum(rs, r => r.sales))}<br>${int(rs.length)} listings · avg ${money(sum(rs, r => r.sales) / rs.length)}${extra}`;
+
+  function render() {
+    FILTERS.forEach(f => { document.getElementById('f-' + f.key).value = state[f.key]; });
+    const n = Object.values(state).filter(Boolean).length;
+    activeNote.textContent = n ? `${n} filter${n > 1 ? 's' : ''} active` : '';
+
+    const all = filtered();
+    kpis(all);
+
+    // category
+    const byType = [...groupBy(filtered('type'), r => r.type)]
+      .map(([label, rs]) => ({ label, value: sum(rs, r => r.sales), tip: groupTip(label, rs) }))
+      .sort((a, b) => b.value - a.value);
+    hbar(document.getElementById('chart-category'), byType,
+      { selected: state.type, onClick: v => toggle('type', v), labelWidth: 150 });
+
+    // outlet, coloured by type
+    const presentTypes = new Set();
+    const byOutlet = [...groupBy(filtered('outlet'), r => r.outlet)]
+      .map(([label, rs]) => {
+        const o = rs[0]; presentTypes.add(o.otype);
+        return { label, value: sum(rs, r => r.sales), color: typeColor(o.otype),
+                 tip: groupTip(`${label} · ${o.otype}`, rs, `<br><span class="k">${o.size} size · ${o.tier} · opened ${o.year}</span>`) };
+      })
+      .sort((a, b) => b.value - a.value);
+    document.getElementById('legend-outlet').innerHTML = OUTLET_TYPES.filter(t => presentTypes.has(t))
+      .map(t => `<span><i style="background:${typeColor(t)}"></i>${t}</span>`).join('');
+    hbar(document.getElementById('chart-outlet'), byOutlet,
+      { selected: state.outlet, onClick: v => toggle('outlet', v), labelWidth: 64 });
+
+    // fat content
+    const fatColors = { 'Low Fat': 'var(--s1)', 'Regular': 'var(--s2)', 'Non-Edible': 'var(--s3)' };
+    const fatGroups = groupBy(filtered('fat'), r => r.fat);
+    const byFat = ['Low Fat', 'Regular', 'Non-Edible'].filter(k => fatGroups.has(k)).map(k => {
+      const rs = fatGroups.get(k);
+      return { label: k, value: sum(rs, r => r.sales), count: rs.length, color: fatColors[k], tip: groupTip(k, rs) };
+    });
+    shareBar(document.getElementById('chart-fat'), byFat, state.fat, v => toggle('fat', v));
+
+    // per-outlet averages for size and tier
+    const perOutlet = (key, order) => {
+      const g = groupBy(filtered(key), r => r[key]);
+      return order.filter(k => g.has(k)).map(k => {
+        const rs = g.get(k), outlets = new Set(rs.map(r => r.outlet)).size, total = sum(rs, r => r.sales);
+        return { label: k, value: total / outlets,
+                 tip: `<b>${esc(k)}</b>${outlets} outlet${outlets > 1 ? 's' : ''}<br>Total ${moneyFull(total)}<br>Per outlet ${moneyFull(total / outlets)}` };
+      });
+    };
+    hbar(document.getElementById('chart-size'), perOutlet('size', SIZE_ORDER),
+      { selected: state.size, onClick: v => toggle('size', v), labelWidth: 76 });
+    hbar(document.getElementById('chart-tier'), perOutlet('tier', ['Tier 1', 'Tier 2', 'Tier 3']),
+      { selected: state.tier, onClick: v => toggle('tier', v), labelWidth: 60 });
+
+    // price tier
+    const priceGroups = groupBy(filtered('price'), r => r.price);
+    const byPrice = PRICE_TIERS.filter(k => priceGroups.has(k)).map(k => {
+      const rs = priceGroups.get(k);
+      return { label: k, value: sum(rs, r => r.sales) / rs.length, tip: groupTip(k, rs) };
+    });
+    hbar(document.getElementById('chart-price'), byPrice,
+      { selected: state.price, onClick: v => toggle('price', v), labelWidth: 130 });
+
+    scatter(all);
+    buildProducts(all);
+    renderTable();
+  }
+
+  // ---------- theme ----------
+  const themeBtn = document.getElementById('theme');
+  const isDark = () => document.documentElement.dataset.theme
+    ? document.documentElement.dataset.theme === 'dark'
+    : matchMedia('(prefers-color-scheme: dark)').matches;
+  const syncThemeBtn = () => { themeBtn.textContent = isDark() ? 'Light mode' : 'Dark mode'; };
+  try { const t = localStorage.getItem('blinkit-theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+  themeBtn.addEventListener('click', () => {
+    const t = isDark() ? 'light' : 'dark';
+    document.documentElement.dataset.theme = t;
+    try { localStorage.setItem('blinkit-theme', t); } catch (e) {}
+    syncThemeBtn(); render();
+  });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { syncThemeBtn(); render(); });
+  syncThemeBtn();
+
+  let resizeTimer;
+  addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(render, 150); });
+  render();
+})();
+</script>
+</body>
+</html>

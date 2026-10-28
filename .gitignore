@@ -1,0 +1,9 @@
+# Windows / editor junk
+desktop.ini
+Thumbs.db
+*.sqbpro
+__pycache__/
+.claude/
+
+# Power BI temp/lock files
+~$*.pbix

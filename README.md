@@ -1,93 +1,90 @@
-# Blinkit Grocery Sales Analysis (SQL)
+# Blinkit grocery sales analysis
 
-## Project Overview
-This project conducts an end-to-end exploratory analysis of Blinkit's grocery sales dataset using SQL. The goal is to analyze revenue drivers, product category performance, store size profitability, and customer purchasing preferences across location tiers.
+SQL and Power BI analysis of 8,523 grocery listings sold across 10 Blinkit outlets, with an interactive HTML dashboard on top.
 
-## Skills Demonstrated
-* **Database Cleaning:** Data standardization (`UPDATE`, `WHERE`, `IN`)
-* **KPI Calculation:** High-level metrics aggregation (`SUM`, `AVG`, `COUNT`, `ROUND`)
-* **Business Analysis:** Data slicing and segmentation (`GROUP BY`, `ORDER BY`, `HAVING`)
-* **Conditional Logic:** Price tier classification (`CASE WHEN`)
+Live dashboard: https://siyam1974.github.io/Blinkit-Dashboard/
 
-## Key Business Metrics (KPIs)
-* **Total Revenue:** $18591125.41
-* **Average Sales Per Item:** $2181.29
-* **Total Items Sold:** 8523
+Each row in the data is one product stocked at one outlet, and `Item_Outlet_Sales` is the sales value of that product at that outlet. The dataset has no dates, quantities, costs or customer details, so it can't show trends over time, profit or footfall. Everything below is about where the sales value sits.
 
-## Key Insights & Findings
-1. **Fat Content Preference:** Low Fat items generated (**$11904094.53**) across (**5517**) items, outperforming Regular fat items. Where Regular Fat Content sales is (**$6687030.88**) across (**3006**) items.
-2. **Top Selling Category:** [Fruits and Vegetables] is the highest revenue-generating category (**$2820059.82**).
-3. **Outlet Size Impact:** [Medium] stores produced the highest overall sales volume which is (**7489718.69**).
-4. **City Tier Performance:** [Tier 3] locations generated the most revenue Order by Tier 2 and 1.
+## What's in the repo
 
+```
+Contain_Raw_Data.csv              raw data, 8,523 rows x 12 columns
+blinkit.db                        SQLite database: raw table `blinkit` + cleaned table `blinkit_clean`
+blinkit-grocery-analysis.sql      cleaning step and 9 analysis queries (SQLite)
+scripts/build_dashboard_data.py   same cleaning in pandas; writes the CSV and dashboard data below
+data/blinkit_clean.csv            cleaned data
+interactive-dashboard/            index.html + data.js, the interactive dashboard
+Dashboard_Blinkit_Project.pbix    Power BI report
+powerbi-screenshots/              exported Power BI visuals
+```
 
-## Dashboard
-**1. Key Performance Indicators (KPIs)**
-Total Sales ($18.59M): Cumulative revenue generated across all store outlets and grocery inventory.
+## How to run it
 
-Average Sales ($2.18K): Mean revenue generated per item entry across all outlet locations.
+The SQL script runs in DB Browser for SQLite (open `blinkit.db`, paste the script into Execute SQL, run all). It leaves the raw `blinkit` table alone and rebuilds `blinkit_clean` each time, so it's safe to re-run.
 
-Insight: Strong cumulative revenue paired with high average sales per item indicates solid item throughput across the retail network.
+To rebuild the cleaned CSV and the dashboard data:
 
+```bash
+pip install -r requirements.txt
+python scripts/build_dashboard_data.py
+```
 
-<img width="600" alt="Total_sales" src="Dashboard/Total_sales.png" />
+To view the dashboard, open `interactive-dashboard/index.html` in a browser. It has no external dependencies and works offline.
 
+## Data cleaning
 
+| Problem in the raw data | Fix |
+|---|---|
+| Fat content spelled five ways (`Low Fat`, `LF`, `low fat`, `Regular`, `reg`) | Merged into `Low Fat` and `Regular` |
+| 1,599 non-food items (IDs starting `NC`: household, hygiene, others) labelled "Low Fat" | Relabelled `Non-Edible` |
+| Outlet size blank for 2,410 rows (all of OUT010, OUT017, OUT045) | Labelled `Unknown`, kept in every total |
+| Item weight missing for 1,463 rows | Filled from the same product at other outlets; 4 rows have no weight anywhere and stay empty |
+| Item visibility of 0 on 526 rows | Replaced with that product's average non-zero visibility |
+| Price tiers used overlapping `BETWEEN` ranges (an MRP of exactly 100 fell in two bands) | Rewritten with `<` boundaries |
 
-**2. Sales by Outlet Size**
+The SQL and the Python script apply the same rules, and their outputs match to the paisa.
 
-Small Outlets: Lead total revenue generation, contributing approximately $9M.
+## Headline numbers
 
-Medium Outlets: Represent the second-largest share at around $7.5M.
+Total sales are ₹18,591,125.41 across 8,523 listings, 1,559 distinct products and 10 outlets. The average listing sells ₹2,181.29, and the average MRP is ₹140.99.
 
-High (Large) Outlets: Account for the smallest revenue share at roughly $2.5M.
+## Findings
 
-Insight: Compact store footprints drive over 80% of total sales volume, highlighting high sales efficiency and broader geographic reach for smaller retail formats.
+Fruits and vegetables are the biggest category at ₹2.82M, just ahead of snack foods at ₹2.73M. That's mostly because they have the most listings (1,232 and 1,200). Average sales per listing barely moves between categories (₹1,926 to ₹2,374).
 
+The original version of this project said low-fat items beat regular ones by ₹11.9M to ₹6.7M. That gap came from counting 1,599 household and hygiene products as "Low Fat". Once they're split out, low fat is ₹8.48M (45.6%), regular is ₹6.69M (36.0%) and non-edible is ₹3.43M (18.4%). Per listing, regular items actually sell slightly more (₹2,225 against ₹2,164).
 
-<img width="600" alt="Outlet_Sales" src="Dashboard/sales_by_Outlet_size_.png" />
+Price is the strongest driver in the data. MRP and sales correlate at r = 0.57, and the average listing in the ₹200+ band sells ₹3,679 against ₹616 for items under ₹50.
 
+Outlet type matters far more than size or location. The two grocery stores (OUT010 and OUT019) average ₹340 per listing, against ₹1,996 to ₹3,694 for the supermarkets. The single Supermarket Type3 (OUT027) is the best outlet by a distance, with ₹3.45M in sales.
 
+Medium outlets sell the most per outlet (₹2.50M) and the most in total (₹7.49M). The ₹4.39M from the three outlets with no recorded size is reported separately as Unknown.
 
-**3. Sales by Fat Content**
+Tier 3 has the highest total (₹7.64M), but it also has four outlets to the other tiers' three. Per outlet, Tier 2 leads with ₹2.16M, then Tier 3 at ₹1.91M and Tier 1 at ₹1.49M. Tier 1 is pulled down by OUT019, one of the two grocery stores.
 
+## Interactive dashboard
 
-Low Fat Inventory: Dominates customer demand, generating $11.90M (64.03%) of total sales.
+`interactive-dashboard/index.html` shows the cleaned data with filters for location tier, outlet size, outlet type, outlet, product category, fat content and price tier. Clicking a bar in any chart filters by that value, and clicking it again clears it. Each chart ignores its own filter, so you can still see the other bars, greyed out, for comparison.
 
-Regular Inventory: Contributes $6.69M (35.97%) of overall revenue.
+It includes:
 
-Insight: Consumer purchasing heavily favors healthier, low-fat grocery items, signaling a key strategic opportunity to prioritize low-fat inventory stocking.
-<img width="600" alt="Outlet_Sales" src="Dashboard/sales_by_fat_content.png" />
+- KPI tiles for total sales, average sales per listing, listings, unique products and average MRP
+- sales by product category, by outlet (coloured by outlet type) and by fat content
+- sales per outlet by size and by location tier
+- average sales by price tier, and an MRP against sales scatter plot with the correlation for the current filter
+- a searchable, sortable product table with paging and CSV export of the filtered rows
+- light and dark mode
 
+## Power BI
 
-### 4. Top Product Categories (Sales by Item Type)
+`Dashboard_Blinkit_Project.pbix` is the original Power BI report, and `powerbi-screenshots/` holds its exported visuals. Its data was imported from an earlier copy of the raw CSV, so two things in it disagree with the cleaned analysis:
 
-<img width="500" alt="Sales by Item Type" src="Dashboard/Sales_by_item_type.png" />
+- The outlet size chart puts all 2,410 blank-size rows under "Small", which makes Small look like the biggest size (about ₹8.96M). Those three outlets have no recorded size.
+- The fat content donut counts household and hygiene products as "Low Fat" (₹11.90M, 64%).
 
-* **Fruits & Vegetables:** Top revenue driver at $2.8M.
-* **Snack Foods:** Second-highest category contributing $2.7M.
-* **Household Essentials:** Generates $2.1M, followed by Frozen Foods ($1.8M) and Dairy ($1.5M).
-* **Insight:** Fresh produce and convenience snacks generate the main bulk of sales, serving as primary traffic anchors for store locations.
+The visuals also use a `$` format, while the data is in rupees. To bring the report in line, change its source to `data/blinkit_clean.csv` (Transform data, then Data source settings) and refresh.
 
----
+## Skills used
 
-## 📁 Repository Structure
-
-```text
-blinkit-grocery-analysis/
-├── README.md
-├── blinkit-grocery-analysis.sql
-├── Contain_Raw_Data.csv
-└── Dashboard/
-    ├── Blinkit_Grocery_Sales.pbix
-    ├── Total_sales.png
-    ├── sales_by_Outlet_size_.png
-    ├── sales_by_fat_content.png
-    └── Sales_by_item_type.png
-    
-
-## Author
-
-**Muntasir Matin Siyam**  
-BSc (Hons) Computing Systems  
-Ulster University London
+SQL (SQLite): `CREATE TABLE ... AS`, `INSERT ... SELECT`, correlated subqueries for imputation, `CASE WHEN`, `COALESCE`/`NULLIF`, `GROUP BY`/`HAVING`, conditional aggregation. Python: pandas for cleaning and group-wise imputation. Front end: plain HTML, CSS and JavaScript with SVG and canvas charts.
